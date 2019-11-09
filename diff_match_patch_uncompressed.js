@@ -1339,6 +1339,15 @@ diff_match_patch.prototype.diff_levenshtein = function(diffs) {
   return levenshtein;
 };
 
+diff_match_patch.prototype.isHighSurrogate = function(c) {
+  var v = c.charCodeAt(0);
+  return v >= 0xD800 && v <= 0xDBFF;
+}
+
+diff_match_patch.prototype.isLowSurrogate = function(c) {
+  var v = c.charCodeAt(0);
+  return v >= 0xDC00 && v <= 0xDFFF;
+}
 
 /**
  * Crush the diff into an encoded string which describes the operations
@@ -1350,7 +1359,23 @@ diff_match_patch.prototype.diff_levenshtein = function(diffs) {
  */
 diff_match_patch.prototype.diff_toDelta = function(diffs) {
   var text = [];
+  var lastEnd;
   for (var x = 0; x < diffs.length; x++) {
+
+    var thisDiff = diffs[x];
+    var thisTop = thisDiff[1][0];
+    var thisEnd = thisDiff[1][thisDiff[1].length - 1];
+
+    if (thisEnd && this.isHighSurrogate(thisEnd)) {
+      thisDiff[1] = thisDiff[1].slice(0, -1);
+    }
+
+    if (lastEnd && thisTop && this.isHighSurrogate(lastEnd) && this.isLowSurrogate(thisTop)) {
+      thisDiff[1] = lastEnd + thisDiff[1];
+    }
+
+    lastEnd = thisEnd;
+
     switch (diffs[x][0]) {
       case DIFF_INSERT:
         text[x] = '+' + encodeURI(diffs[x][1]);
