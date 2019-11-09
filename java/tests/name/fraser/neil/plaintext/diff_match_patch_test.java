@@ -424,6 +424,10 @@ public class diff_match_patch_test {
 
     assertEquals("diff_fromDelta: Unicode.", diffs, dmp.diff_fromDelta(text1, delta));
 
+    diffs = diffList(new Diff(EQUAL, "\ud83d\ude4b\ud83d"), new Diff(INSERT, "\ude4c\ud83d"), new Diff(EQUAL, "\ude4b"));
+    delta = dmp.diff_toDelta(diffs);
+    assertEquals("diff_toDelta: Surrogate Pairs.", "=2\t+%F0%9F%99%8C\t=2", delta);
+
     // Verify pool of unchanged characters.
     diffs = diffList(new Diff(INSERT, "A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # "));
     String text2 = dmp.diff_text2(diffs);

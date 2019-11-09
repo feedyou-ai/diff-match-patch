@@ -19,6 +19,7 @@
 package name.fraser.neil.plaintext;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.Character;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.*;
@@ -1429,7 +1430,24 @@ public class diff_match_patch {
    */
   public String diff_toDelta(List<Diff> diffs) {
     StringBuilder text = new StringBuilder();
+    char lastEnd = 0;
+    boolean isFirst = true;
     for (Diff aDiff : diffs) {
+
+      char thisTop = aDiff.text.charAt(0);
+      char thisEnd = aDiff.text.charAt(aDiff.text.length() - 1);
+
+      if (Character.isHighSurrogate(thisEnd)) {
+        aDiff.text = aDiff.text.substring(0, aDiff.text.length() - 1);
+      }
+
+      if (! isFirst && Character.isHighSurrogate(lastEnd) && Character.isLowSurrogate(thisTop)) {
+        aDiff.text = lastEnd + aDiff.text;
+      }
+
+      isFirst = false;
+      lastEnd = thisEnd;
+
       switch (aDiff.operation) {
       case INSERT:
         try {
