@@ -1176,9 +1176,9 @@ class diff_match_patch:
         data = data.encode("utf-8")
         text.append("+" + urllib.parse.quote(data, "!~*'();/?:@&=+$,# "))
       elif op == self.DIFF_DELETE:
-        text.append("-%d" % len(data))
+        text.append("-%d" % (len(data.encode('utf-16-be')) // 2))
       elif op == self.DIFF_EQUAL:
-        text.append("=%d" % len(data))
+        text.append("=%d" % (len(data.encode('utf-16-be')) // 2))
     return "\t".join(text)
 
   def diff_fromDelta(self, text1, delta):

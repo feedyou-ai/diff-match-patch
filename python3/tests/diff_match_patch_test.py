@@ -447,7 +447,7 @@ class DiffTest(DiffMatchPatchTest):
 
     diffs = [(self.dmp.DIFF_EQUAL, "\ud83d\ude4b\ud83d"), (self.dmp.DIFF_INSERT, "\ude4c\ud83d"), (self.dmp.DIFF_EQUAL, "\ude4b")]
     delta = self.dmp.diff_toDelta(diffs)
-    self.assertEquals("=2\t+%F0%9F%99%8C\t=2", delta)
+    self.assertEqual("=2\t+%F0%9F%99%8C\t=2", delta)
 
     # Verify pool of unchanged characters.
     diffs = [(self.dmp.DIFF_INSERT, "A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # ")]
