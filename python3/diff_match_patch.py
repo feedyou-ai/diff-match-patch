@@ -1174,7 +1174,8 @@ class diff_match_patch:
       ValueError: If invalid input.
     """
     diffs = []
-    pointer = 0  # Cursor in text1
+    as_utf16 = text1.encode('utf-16-be')
+    pointer = 0  # Cursor in as_utf16
     tokens = delta.split("\t")
     for token in tokens:
       if token == "":
@@ -1193,8 +1194,8 @@ class diff_match_patch:
           raise ValueError("Invalid number in diff_fromDelta: " + param)
         if n < 0:
           raise ValueError("Negative number in diff_fromDelta: " + param)
-        text = text1[pointer : pointer + n]
-        pointer += n
+        text = as_utf16[pointer : pointer + n * 2].decode('utf-16-be')
+        pointer += n * 2
         if token[0] == "=":
           diffs.append((self.DIFF_EQUAL, text))
         else:
@@ -1203,10 +1204,10 @@ class diff_match_patch:
         # Anything else is an error.
         raise ValueError("Invalid diff operation in diff_fromDelta: " +
             token[0])
-    if pointer != len(text1):
+    if pointer != len(as_utf16):
       raise ValueError(
           "Delta length (%d) does not equal source text length (%d)." %
-         (pointer, len(text1)))
+         (pointer, len(as_utf16)))
     return diffs
 
   #  MATCH FUNCTIONS
