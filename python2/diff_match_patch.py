@@ -28,6 +28,7 @@ Applies the patch onto another text, allowing for errors.
 __author__ = 'fraser@google.com (Neil Fraser)'
 
 import re
+import struct
 import sys
 import time
 import urllib
@@ -1135,6 +1136,16 @@ class diff_match_patch:
     levenshtein += max(insertions, deletions)
     return levenshtein
 
+  @classmethod
+  def is_high_surrogate(cls, utf16be_bytes):
+    c = struct.unpack('>H', utf16be_bytes)[0]
+    return c >= 0xd800 and c <= 0xdbff
+
+  @classmethod
+  def is_low_surrogate(cls, utf16be_bytes):
+    c = struct.unpack('>H', utf16be_bytes)[0]
+    return c >= 0xdc00 and c <= 0xdfff
+
   def diff_toDelta(self, diffs):
     """Crush the diff into an encoded string which describes the operations
     required to transform text1 into text2.
@@ -1148,7 +1159,21 @@ class diff_match_patch:
       Delta text.
     """
     text = []
+    last_end = None
     for (op, data) in diffs:
+      encoded = data.encode('utf-16be')
+      this_top = encoded[0:2]
+      this_end = encoded[-2:]
+
+      if self.is_high_surrogate(this_end):
+        encoded = encoded[0:-2]
+
+      if last_end and self.is_high_surrogate(last_end) and self.is_low_surrogate(this_top):
+        encoded = last_end + encoded
+
+      data = encoded.decode('utf-16be')
+      last_end = this_end
+
       if op == self.DIFF_INSERT:
         # High ascii will raise UnicodeDecodeError.  Use Unicode instead.
         data = data.encode("utf-8")
