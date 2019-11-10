@@ -1299,7 +1299,22 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
 - (NSString *)diff_toDelta:(NSMutableArray *)diffs;
 {
   NSMutableString *delta = [NSMutableString string];
+  UniChar lastEnd;
   for (Diff *aDiff in diffs) {
+
+    UniChar thisTop = [aDiff.text characterAtIndex:0];
+    UniChar thisEnd = [aDiff.text characterAtIndex:([aDiff.text length]-1)];
+
+    if (CFStringIsSurrogateHighCharacter(thisEnd)) {
+      aDiff.text = [aDiff.text substringToIndex:([aDiff.text length] - 1)];
+    }
+
+    if (nil != lastEnd && CFStringIsSurrogateHighCharacter(lastEnd) && CFStringIsSurrogateLowCharacter(thisTop)) {
+      aDiff.text = [[NSString stringWithFormat:@"%C", lastEnd] stringByAppendingString:aDiff.text];
+    }
+
+    lastEnd = thisEnd;
+
     switch (aDiff.operation) {
       case DIFF_INSERT:
         [delta appendFormat:@"+%@\t", [[aDiff.text diff_stringByAddingPercentEscapesForEncodeUriCompatibility]
