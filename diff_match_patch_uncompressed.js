@@ -1375,6 +1375,9 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
     }
 
     lastEnd = thisEnd;
+    if ( 0 === thisDiff[1].length ) {
+      continue;
+    }
 
     switch (diffs[x][0]) {
       case DIFF_INSERT:
