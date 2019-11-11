@@ -758,11 +758,11 @@
   XCTAssertEqualObjects(delta, @"=2\t+%F0%9F%98%83\t=4", @"Delta should match the expected string");
 
   diffs = [dmp diff_mainOfOldString:@"☺️🖖🏿" andNewString:@"☺️😃🖖🏿"];
-  patches = [dmp patch_makeFromDiffs:diffs];
-  expectedResult = [dmp patch_apply:patches toString:@"☺️🖖🏿"];
+  NSArray *patches = [dmp patch_makeFromDiffs:diffs];
+  NSArray *patchResult = [dmp patch_apply:patches toString:@"☺️🖖🏿"];
 
-  expectedString = [result firstObject];
-  XCTAssertEqualObjects(edited, expectedString, @"Output String should match the Edited one!");
+  expectedString = [patchResult firstObject];
+  XCTAssertEqualObjects(@"☺️😃🖖🏿", expectedString, @"Output String should match the Edited one!");
 
   // Verify pool of unchanged characters.
   diffs = [NSMutableArray arrayWithObject:
