@@ -1310,7 +1310,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
     }
 
     if (0 != lastEnd && CFStringIsSurrogateHighCharacter(lastEnd) && CFStringIsSurrogateLowCharacter(thisTop)) {
-      aDiff.text = [NSString stringWithFormat:@"%C%@", lastEnd, stringByAppendingString:aDiff.text];
+      aDiff.text = [NSString stringWithFormat:@"%C%@", lastEnd, aDiff.text];
     }
 
     lastEnd = thisEnd;
