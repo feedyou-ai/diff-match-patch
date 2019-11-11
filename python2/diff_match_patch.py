@@ -1173,6 +1173,8 @@ class diff_match_patch:
 
       data = encoded.decode('utf-16be')
       last_end = this_end
+      if 0 == len(encoded):
+        continue
 
       if op == self.DIFF_INSERT:
         # High ascii will raise UnicodeDecodeError.  Use Unicode instead.

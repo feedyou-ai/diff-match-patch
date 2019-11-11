@@ -1147,7 +1147,6 @@ class diff_match_patch:
       Delta text.
     """
     text = []
-    last_end = None
     for (op, data) in diffs:
       if op == self.DIFF_INSERT:
         # High ascii will raise UnicodeDecodeError.  Use Unicode instead.

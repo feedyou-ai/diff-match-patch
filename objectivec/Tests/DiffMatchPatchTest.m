@@ -752,6 +752,18 @@
 
   XCTAssertEqualObjects(diffs, [dmp diff_fromDeltaWithText:text1 andDelta:delta error:NULL], @"diff_fromDelta: Unicode 2.");
 
+  diffs = [dmp diff_mainOfOldString:@"☺️🖖🏿" andNewString:@"☺️😃🖖🏿"];
+  delta = [dmp diff_toDelta:diffs];
+
+  XCTAssertEqualObjects(delta, @"=2\t+%F0%9F%98%83\t=4", @"Delta should match the expected string");
+
+  diffs = [dmp diff_mainOfOldString:@"☺️🖖🏿" andNewString:@"☺️😃🖖🏿"];
+  patches = [dmp patch_makeFromDiffs:diffs];
+  expectedResult = [dmp patch_apply:patches toString:@"☺️🖖🏿"];
+
+  expectedString = [result firstObject];
+  XCTAssertEqualObjects(edited, expectedString, @"Output String should match the Edited one!");
+
   // Verify pool of unchanged characters.
   diffs = [NSMutableArray arrayWithObject:
        [Diff diffWithOperation:DIFF_INSERT andText:@"A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # "]];

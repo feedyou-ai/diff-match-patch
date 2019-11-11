@@ -1447,6 +1447,9 @@ public class diff_match_patch {
 
       isFirst = false;
       lastEnd = thisEnd;
+      if ( aDiff.text.isEmpty() ) {
+        continue;
+      }
 
       switch (aDiff.operation) {
       case INSERT:
