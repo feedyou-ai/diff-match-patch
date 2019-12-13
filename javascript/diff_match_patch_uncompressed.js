@@ -1366,7 +1366,14 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
     var thisTop = thisDiff[1][0];
     var thisEnd = thisDiff[1][thisDiff[1].length - 1];
 
+    if (0 === thisDiff[1].length) {
+      continue;
+    }
+
+    // trap a trailing high-surrogate so we can
+    // distribute it to the successive edits
     if (thisEnd && this.isHighSurrogate(thisEnd)) {
+      lastEnd = thisEnd;
       thisDiff[1] = thisDiff[1].slice(0, -1);
     }
 
@@ -1374,20 +1381,25 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
       thisDiff[1] = lastEnd + thisDiff[1];
     }
 
-    lastEnd = thisEnd;
-    if ( 0 === thisDiff[1].length ) {
+    // we have to carry the surrogate half through
+    // any successive insert/delete edits
+    if (DIFF_EQUAL === thisDiff[0]) {
+      lastEnd = thisEnd;
+    }
+
+    if (0 === thisDiff[1].length) {
       continue;
     }
 
-    switch (diffs[x][0]) {
+    switch (thisDiff[0]) {
       case DIFF_INSERT:
-        text[x] = '+' + encodeURI(diffs[x][1]);
+        text.push('+' + encodeURI(thisDiff[1]));
         break;
       case DIFF_DELETE:
-        text[x] = '-' + diffs[x][1].length;
+        text.push('-' + thisDiff[1].length);
         break;
       case DIFF_EQUAL:
-        text[x] = '=' + diffs[x][1].length;
+        text.push('=' + thisDiff[1].length);
         break;
     }
   }
