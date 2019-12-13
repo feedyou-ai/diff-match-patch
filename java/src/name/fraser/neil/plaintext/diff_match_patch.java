@@ -1433,6 +1433,9 @@ public class diff_match_patch {
     char lastEnd = 0;
     boolean isFirst = true;
     for (Diff aDiff : diffs) {
+      if (aDiff.text.isEmpty()) {
+        continue;
+      }
 
       char thisTop = aDiff.text.charAt(0);
       char thisEnd = aDiff.text.charAt(aDiff.text.length() - 1);
@@ -1446,7 +1449,11 @@ public class diff_match_patch {
       }
 
       isFirst = false;
-      lastEnd = thisEnd;
+
+      if (aDiff.operation == Operation.EQUAL) {
+        lastEnd = thisEnd;
+      }
+
       if ( aDiff.text.isEmpty() ) {
         continue;
       }
@@ -1478,6 +1485,81 @@ public class diff_match_patch {
     return delta;
   }
 
+  private String decodeURI(String text) throws IllegalArgumentException {
+    int i = 0;
+    StringBuffer decoded = new StringBuffer("");
+
+    while (i < text.length()) {
+      if ( text.charAt(i) != '%' ) {
+        decoded.append(text.charAt(i++));
+        continue;
+      }
+
+      // start a percent-sequence
+      int byte1 = Integer.parseInt(text.substring(i + 1, i + 3), 16);
+      
+      if ((byte1 & 0x80) == 0) {
+        decoded.append(Character.toChars(byte1));
+        i += 3;
+        continue;
+      }
+
+      if ( text.charAt(i + 3) != '%') {
+        throw new IllegalArgumentException();
+      }
+
+      int byte2 = Integer.parseInt(text.substring(i + 4, i + 6), 16);
+      if ((byte2 & 0xC0) != 0x80) {
+        throw new IllegalArgumentException();
+      }
+      byte2 = byte2 & 0x3F;
+      if ((byte1 & 0xE0) == 0xC0) {
+        decoded.append(Character.toChars(((byte1 & 0x1F) << 6) | byte2));
+        i += 6;
+        continue;
+      }
+
+      if (text.charAt(i + 6) != '%') {
+        throw new IllegalArgumentException();
+      }
+
+      int byte3 = Integer.parseInt(text.substring(i + 7, i + 9), 16);
+      if ((byte3 & 0xC0) != 0x80) {
+        throw new IllegalArgumentException();
+      }
+      byte3 = byte3 & 0x3F;
+      if ((byte1 & 0xF0) == 0xE0) {
+        // unpaired surrogate are fine here
+        decoded.append(Character.toChars(((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3));
+        i += 9;
+        continue;
+      }
+
+      if (text.charAt(i + 9) != '%') {
+        throw new IllegalArgumentException();
+      }
+
+      int byte4 = Integer.parseInt(text.substring(i + 10, i + 12), 16);
+      if ((byte4 & 0xC0) != 0x80) {
+        throw new IllegalArgumentException();
+      }
+      byte4 = byte4 & 0x3F;
+      if ((byte1 & 0xF8) == 0xF0) {
+        int codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
+        if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
+          decoded.append(Character.toChars((codePoint & 0xFFFF) >>> 10 & 0x3FF | 0xD800));
+          decoded.append(Character.toChars(0xDC00 | (codePoint & 0xFFFF) & 0x3FF));
+          i += 12;
+          continue;
+        }
+      }
+
+      throw new IllegalArgumentException();
+    }
+
+    return decoded.toString();
+  }
+
   /**
    * Given the original text1, and an encoded string which describes the
    * operations required to transform text1 into text2, compute the full diff.
@@ -1504,10 +1586,7 @@ public class diff_match_patch {
         // decode would change all "+" to " "
         param = param.replace("+", "%2B");
         try {
-          param = URLDecoder.decode(param, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-          // Not likely on modern system.
-          throw new Error("This system does not support UTF-8.", e);
+          param = this.decodeURI(param);
         } catch (IllegalArgumentException e) {
           // Malformed URI sequence.
           throw new IllegalArgumentException(
