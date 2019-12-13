@@ -548,7 +548,44 @@ function testDiffDelta() {
       newText = applyRandomTextEdit(originalText);
       dmp.patch_toText(dmp.patch_make(originalText, newText));
     }
-  });
+  })();
+
+  // Unicode - splitting surrogates
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta([[DIFF_EQUAL,'\ud83c\udd70'], [DIFF_INSERT, '\ud83c\udd70'], [DIFF_EQUAL, '\ud83c\udd71']]),
+      dmp.diff_toDelta(dmp.diff_main('\ud83c\udd70\ud83c\udd71', '\ud83c\udd70\ud83c\udd70\ud83c\udd71'))
+    );
+  } catch ( e ) {
+    assertEquals('Inserting similar surrogate pair', 'crashed');
+  }
+
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta([[DIFF_DELETE, '\ud83c\udd70'], [DIFF_INSERT, '\ud83c\udd71']]),
+      dmp.diff_toDelta([[DIFF_EQUAL, '\ud83c'], [DIFF_DELETE, '\udd70'], [DIFF_INSERT, '\udd71']]),
+    );
+  } catch ( e ) {
+    assertEquals('Swap surrogate pair', 'crashed');
+  }
+
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta([[DIFF_INSERT, '\ud83c\udd70'], [DIFF_DELETE, '\ud83c\udd71']]),
+      dmp.diff_toDelta([[DIFF_EQUAL, '\ud83c'], [DIFF_INSERT, '\udd70'], [DIFF_DELETE, '\udd71']]),
+    );
+  } catch ( e ) {
+    assertEquals('Swap surrogate pair', 'crashed');
+  }
+
+  // Empty diff groups
+  assertEquivalent(
+    JSON.stringify(dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_DELETE, ''], [DIFF_INSERT, 'ghijk']])),
+    JSON.stringify(dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_INSERT, 'ghijk']])),
+  );
+
+  // Invalid UTF8 but valid surrogate pairs
+  
 
   // Verify pool of unchanged characters.
   diffs = [[DIFF_INSERT, 'A-Z a-z 0-9 - _ . ! ~ * \' ( ) ; / ? : @ & = + $ , # ']];
