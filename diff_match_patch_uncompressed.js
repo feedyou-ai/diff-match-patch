@@ -1406,6 +1406,100 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
   return text.join('\t').replace(/%20/g, ' ');
 };
 
+/**
+ * Decode URI-encoded string but allow for encoded surrogate halves
+ * 
+ * diff_match_patch needs this relaxation of the requirements because
+ * not all libraries and versions produce valid URI strings in toDelta
+ * and we don't want to crash this code when the input is valid input
+ * but at the same time invalid utf-8
+ * 
+ * @example: decodeURI( 'abcd%3A %F0%9F%85%B0' ) = 'abcd: \ud83c\udd70'
+ * @example: decodeURI( 'abcd%3A %ED%A0%BC' ) = 'abcd: \ud83c'
+ * 
+ * @cite: @mathiasbynens utf8.js at https://github.com/mathiasbynens/utf8.js
+ * 
+ * @param {String} text input string encoded by encodeURI() or equivalent
+ * @return {String}
+ */
+diff_match_patch.prototype.decodeURI = function(text) {
+  try {
+    return decodeURI(text);
+  } catch ( e ) {
+    var i = 0;
+    var decoded = '';
+
+    while (i < text.length) {
+      if ( text[i] !== '%' ) {
+        decoded += text[i++];
+        continue;
+      }
+
+      // start a percent-sequence
+      var byte1 = parseInt(text.substring(i + 1, i + 3), 16);
+      
+      if ((byte1 & 0x80) === 0) {
+        decoded += String.fromCharCode(byte1);
+        i += 3;
+        continue;
+      }
+
+      if ('%' !== text[i + 3]) {
+        throw new URIError('URI malformed');
+      }
+
+      var byte2 = parseInt(text.substring(i + 4, i + 6), 16);
+      if ((byte2 & 0xC0) !== 0x80) {
+        throw new URIError('URI malformed');
+      }
+      byte2 = byte2 & 0x3F;
+      if ((byte1 & 0xE0) === 0xC0) {
+        decoded += String.fromCharCode(((byte1 & 0x1F) << 6) | byte2);
+        i += 6;
+        continue;
+      }
+
+      if ('%' !== text[i + 6]) {
+        throw new URIError('URI malformed');
+      }
+
+      var byte3 = parseInt(text.substring(i + 7, i + 9), 16);
+      if ((byte3 & 0xC0) !== 0x80) {
+        throw new URIError('URI malformed');
+      }
+      byte3 = byte3 & 0x3F;
+      if ((byte1 & 0xF0) === 0xE0) {
+        // unpaired surrogate are fine here
+        decoded += String.fromCharCode(((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3);
+        i += 9;
+        continue;
+      }
+
+      if ('%' !== text[i + 9]) {
+        throw new URIError('URI malformed');
+      }
+
+      var byte4 = parseInt(text.substring(i + 10, i + 12), 16);
+      if ((byte4 & 0xC0) !== 0x80) {
+        throw new URIError('URI malformed');
+      }
+      byte4 = byte4 & 0x3F;
+      if ((byte1 & 0xF8) === 0xF0) {
+        var codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
+        if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
+          decoded += String.fromCharCode((codePoint & 0xFFFF) >>> 10 & 0x3FF | 0xD800);
+          decoded += String.fromCharCode(0xDC00 | (codePoint & 0xFFFF) & 0x3FF);
+          i += 12;
+          continue;
+        }
+      }
+
+      throw new URIError('URI malformed');
+    }
+
+    return decoded;
+  }
+};
 
 /**
  * Given the original text1, and an encoded string which describes the
@@ -1428,7 +1522,7 @@ diff_match_patch.prototype.diff_fromDelta = function(text1, delta) {
       case '+':
         try {
           diffs[diffsLength++] =
-              new diff_match_patch.Diff(DIFF_INSERT, decodeURI(param));
+              new diff_match_patch.Diff(DIFF_INSERT, this.decodeURI(param));
         } catch (ex) {
           // Malformed URI sequence.
           throw new Error('Illegal escape in diff_fromDelta: ' + param);

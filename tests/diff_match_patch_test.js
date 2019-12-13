@@ -580,12 +580,20 @@ function testDiffDelta() {
 
   // Empty diff groups
   assertEquivalent(
-    JSON.stringify(dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_DELETE, ''], [DIFF_INSERT, 'ghijk']])),
-    JSON.stringify(dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_INSERT, 'ghijk']])),
+    dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_DELETE, ''], [DIFF_INSERT, 'ghijk']]),
+    dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_INSERT, 'ghijk']]),
   );
 
-  // Invalid UTF8 but valid surrogate pairs
-  
+  // Different versions of the library may have created deltas with
+  // half of a surrogate pair encoded as if it were valid UTF-8
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta(dmp.diff_fromDelta('\ud83c\udd70', '-2\t+%F0%9F%85%B1')),
+      dmp.diff_toDelta(dmp.diff_fromDelta('\ud83c\udd70', '=1\t-1\t+%ED%B5%B1'))
+    );
+  } catch ( e ) {
+    assertEquals('Decode UTF8-encoded surrogate half', 'crashed');
+  }
 
   // Verify pool of unchanged characters.
   diffs = [[DIFF_INSERT, 'A-Z a-z 0-9 - _ . ! ~ * \' ( ) ; / ? : @ & = + $ , # ']];
