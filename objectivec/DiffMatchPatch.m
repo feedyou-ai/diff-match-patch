@@ -1301,11 +1301,15 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
   NSMutableString *delta = [NSMutableString string];
   UniChar lastEnd = 0;
   for (Diff *aDiff in diffs) {
+    if (0 == [aDiff.text length]) {
+        continue;
+    }
 
     UniChar thisTop = [aDiff.text characterAtIndex:0];
     UniChar thisEnd = [aDiff.text characterAtIndex:([aDiff.text length]-1)];
 
     if (CFStringIsSurrogateHighCharacter(thisEnd)) {
+      lastEnd = thisEnd;
       aDiff.text = [aDiff.text substringToIndex:([aDiff.text length] - 1)];
     }
 
@@ -1313,7 +1317,6 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
       aDiff.text = [NSString stringWithFormat:@"%C%@", lastEnd, aDiff.text];
     }
 
-    lastEnd = thisEnd;
     if (0 == [aDiff.text length]) {
       continue;
     }
