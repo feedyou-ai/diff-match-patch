@@ -1381,12 +1381,6 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
       thisDiff[1] = lastEnd + thisDiff[1];
     }
 
-    // we have to carry the surrogate half through
-    // any successive insert/delete edits
-    if (DIFF_EQUAL === thisDiff[0]) {
-      lastEnd = thisEnd;
-    }
-
     if (0 === thisDiff[1].length) {
       continue;
     }

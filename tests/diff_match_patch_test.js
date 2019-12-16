@@ -553,11 +553,38 @@ function testDiffDelta() {
   // Unicode - splitting surrogates
   try {
     assertEquivalent(
+      dmp.diff_toDelta([[DIFF_INSERT,'\ud83c\udd71'], [DIFF_EQUAL, '\ud83c\udd70\ud83c\udd71']]),
+      dmp.diff_toDelta(dmp.diff_main('\ud83c\udd70\ud83c\udd71', '\ud83c\udd71\ud83c\udd70\ud83c\udd71'))
+    );
+  } catch ( e ) {
+    assertEquals('Inserting similar surrogate pair at beginning', 'crashed');
+  }
+
+  try {
+    assertEquivalent(
       dmp.diff_toDelta([[DIFF_EQUAL,'\ud83c\udd70'], [DIFF_INSERT, '\ud83c\udd70'], [DIFF_EQUAL, '\ud83c\udd71']]),
       dmp.diff_toDelta(dmp.diff_main('\ud83c\udd70\ud83c\udd71', '\ud83c\udd70\ud83c\udd70\ud83c\udd71'))
     );
   } catch ( e ) {
-    assertEquals('Inserting similar surrogate pair', 'crashed');
+    assertEquals('Inserting similar surrogate pair in the middle', 'crashed');
+  }
+
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta([[DIFF_DELETE,'\ud83c\udd71'], [DIFF_EQUAL, '\ud83c\udd70\ud83c\udd71']]),
+      dmp.diff_toDelta(dmp.diff_main('\ud83c\udd71\ud83c\udd70\ud83c\udd71', '\ud83c\udd70\ud83c\udd71'))
+    );
+  } catch ( e ) {
+    assertEquals('Deleting similar surrogate pair at the beginning', 'crashed');
+  }
+
+  try {
+    assertEquivalent(
+      dmp.diff_toDelta([[DIFF_EQUAL, '\ud83c\udd70'], [DIFF_DELETE,'\ud83c\udd72'], [DIFF_EQUAL, '\ud83c\udd71']]),
+      dmp.diff_toDelta(dmp.diff_main('\ud83c\udd70\ud83c\udd72\ud83c\udd71', '\ud83c\udd70\ud83c\udd71'))
+    );
+  } catch ( e ) {
+    assertEquals('Deleting similar surrogate pair in the middle', 'crashed');
   }
 
   try {
