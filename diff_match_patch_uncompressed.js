@@ -1400,6 +1400,28 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
   return text.join('\t').replace(/%20/g, ' ');
 };
 
+diff_match_patch.prototype.digit16 = function(c) {
+  switch (c) {
+    case '0': return 0;
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    case '4': return 4;
+    case '5': return 5;
+    case '6': return 6;
+    case '7': return 7;
+    case '8': return 8;
+    case '9': return 9;
+    case 'A': case 'a': return 10;
+    case 'B': case 'b': return 11;
+    case 'C': case 'c': return 12;
+    case 'D': case 'd': return 13;
+    case 'E': case 'e': return 14;
+    case 'F': case 'f': return 15;
+    default: throw new Error('Invalid hex-code');
+  }
+};
+
 /**
  * Decode URI-encoded string but allow for encoded surrogate halves
  * 
@@ -1430,8 +1452,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
       }
 
       // start a percent-sequence
-      var byte1 = parseInt(text.substring(i + 1, i + 3), 16);
-      
+      var byte1 = (this.digit16(text[i + 1]) << 4) + this.digit16(text[i + 2]);
       if ((byte1 & 0x80) === 0) {
         decoded += String.fromCharCode(byte1);
         i += 3;
@@ -1442,7 +1463,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
         throw new URIError('URI malformed');
       }
 
-      var byte2 = parseInt(text.substring(i + 4, i + 6), 16);
+      var byte2 = (this.digit16(text[i + 4]) << 4) + this.digit16(text[i + 5]);
       if ((byte2 & 0xC0) !== 0x80) {
         throw new URIError('URI malformed');
       }
@@ -1457,7 +1478,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
         throw new URIError('URI malformed');
       }
 
-      var byte3 = parseInt(text.substring(i + 7, i + 9), 16);
+      var byte3 = (this.digit16(text[i + 7]) << 4) + this.digit16(text[i + 8]);
       if ((byte3 & 0xC0) !== 0x80) {
         throw new URIError('URI malformed');
       }
@@ -1473,7 +1494,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
         throw new URIError('URI malformed');
       }
 
-      var byte4 = parseInt(text.substring(i + 10, i + 12), 16);
+      var byte4 = (this.digit16(text[i + 10]) << 4) + this.digit16(text[i + 11]);
       if ((byte4 & 0xC0) !== 0x80) {
         throw new URIError('URI malformed');
       }
