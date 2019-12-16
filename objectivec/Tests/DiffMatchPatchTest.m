@@ -843,6 +843,11 @@
   expectedResult = [dmp diff_fromDeltaWithText:@"" andDelta:delta error:NULL];
   XCTAssertEqualObjects(diffs, expectedResult, @"diff_fromDelta: 160kb string. Convert delta string into a diff.");
 
+  // Different versions of the library may have created deltas with
+  // half of a surrogate pair encoded as if it were valid UTF-8
+  XCTAssertEqualObjects([dmp diff_toDelta:([dmp diff_fromDeltaWithText:@"🅰" andDelta:@"-2\t+%F0%9F%85%B1" error:NULL])],
+                        [dmp diff_toDelta:([dmp diff_fromDeltaWithText:@"🅰" andDelta:@"=1\t-1\t+%ED%B5%B1" error:NULL])]);
+
   [dmp release];
 }
 
