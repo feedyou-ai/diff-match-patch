@@ -764,6 +764,56 @@
   expectedString = [patchResult firstObject];
   XCTAssertEqualObjects(@"☺️😃🖖🏿", expectedString, @"Output String should match the Edited one!");
 
+  // Unicode - splitting surrogates
+
+  // Inserting similar surrogate pair at beginning
+  diffs = [NSMutableArray arrayWithObjects:
+           [Diff diffWithOperation:DIFF_INSERT andText:@"🅱"],
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅰🅱"],
+           nil];
+  XCTAssertEqualObjects( [dmp diff_toDelta:diffs], [dmp diff_toDelta:[dmp diff_mainOfOldString:@"🅰🅱" andNewString:@"🅱🅰🅱"]]);
+
+  // Inserting similar surrogate pair in the middle
+  diffs = [NSMutableArray arrayWithObjects:
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅰"],
+           [Diff diffWithOperation:DIFF_INSERT andText:@"🅰"],
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅱"],
+           nil];
+  XCTAssertEqualObjects( [dmp diff_toDelta:diffs], [dmp diff_toDelta:[dmp diff_mainOfOldString:@"🅰🅱" andNewString:@"🅰🅰🅱"]]);
+
+  // Deleting similar surrogate pair at the beginning
+  diffs = [NSMutableArray arrayWithObjects:
+           [Diff diffWithOperation:DIFF_DELETE andText:@"🅱"],
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅰🅱"],
+           nil];
+  XCTAssertEqualObjects( [dmp diff_toDelta:diffs], [dmp diff_toDelta:[dmp diff_mainOfOldString:@"🅱🅰🅱" andNewString:@"🅰🅱"]]);
+
+  // Deleting similar surrogate pair in the middle
+  diffs = [NSMutableArray arrayWithObjects:
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅰"],
+           [Diff diffWithOperation:DIFF_DELETE andText:@"🅲"],
+           [Diff diffWithOperation:DIFF_EQUAL andText:@"🅱"],
+           nil];
+  XCTAssertEqualObjects( [dmp diff_toDelta:diffs], [dmp diff_toDelta:[dmp diff_mainOfOldString:@"🅰🅲🅱" andNewString:@"🅰🅱"]]);
+
+  // Swapping surrogate pairs
+  diffs = [NSMutableArray arrayWithObjects:
+           [Diff diffWithOperation:DIFF_DELETE andText:@"🅰"],
+           [Diff diffWithOperation:DIFF_INSERT andText:@"🅱"],
+           nil];
+  XCTAssertEqualObjects( [dmp diff_toDelta:diffs], [dmp diff_toDelta:[dmp diff_mainOfOldString:@"🅰" andNewString:@"🅱"]]);
+
+  // Swapping surrogate pairs
+  XCTAssertEqualObjects( [dmp diff_toDelta:([NSMutableArray arrayWithObjects:
+                                            [Diff diffWithOperation:DIFF_DELETE andText:@"🅰"],
+                                            [Diff diffWithOperation:DIFF_INSERT andText:@"🅱"],
+                                             nil])],
+                        [dmp diff_toDelta:([NSMutableArray arrayWithObjects:
+                                            [Diff diffWithOperation:DIFF_EQUAL andText:[NSString stringWithFormat:@"%C", 0xd83c]],
+                                            [Diff diffWithOperation:DIFF_DELETE andText:[NSString stringWithFormat:@"%C", 0xdd70]],
+                                            [Diff diffWithOperation:DIFF_INSERT andText:[NSString stringWithFormat:@"%C", 0xdd71]],
+                                            nil])]);
+
   // Verify pool of unchanged characters.
   diffs = [NSMutableArray arrayWithObject:
        [Diff diffWithOperation:DIFF_INSERT andText:@"A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # "]];
