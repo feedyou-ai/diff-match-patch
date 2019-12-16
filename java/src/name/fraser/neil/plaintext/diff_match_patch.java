@@ -1441,6 +1441,7 @@ public class diff_match_patch {
       char thisEnd = aDiff.text.charAt(aDiff.text.length() - 1);
 
       if (Character.isHighSurrogate(thisEnd)) {
+        lastEnd = thisEnd;
         aDiff.text = aDiff.text.substring(0, aDiff.text.length() - 1);
       }
 
@@ -1449,10 +1450,6 @@ public class diff_match_patch {
       }
 
       isFirst = false;
-
-      if (aDiff.operation == Operation.EQUAL) {
-        lastEnd = thisEnd;
-      }
 
       if ( aDiff.text.isEmpty() ) {
         continue;
