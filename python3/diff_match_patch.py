@@ -1148,6 +1148,9 @@ class diff_match_patch:
     """
     text = []
     for (op, data) in diffs:
+      if 0 == len(data):
+        continue
+
       if op == self.DIFF_INSERT:
         # High ascii will raise UnicodeDecodeError.  Use Unicode instead.
         data = data.encode("utf-8")

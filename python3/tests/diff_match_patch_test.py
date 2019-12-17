@@ -462,6 +462,69 @@ class DiffTest(DiffMatchPatchTest):
     # Convert delta string into a diff.
     self.assertEqual(diffs, self.dmp.diff_fromDelta("", delta))
 
+    # Unicode: split surrogates
+    self.assertEqual(
+      self.dmp.diff_toDelta([
+        (self.dmp.DIFF_INSERT, '\U0001F171'),
+        (self.dmp.DIFF_EQUAL, '\U0001F170\U0001F171')
+      ]),
+      self.dmp.diff_toDelta(self.dmp.diff_main(
+        '\U0001F170\U0001F171',
+        '\U0001F171\U0001F170\U0001F171'
+      )),
+      'Inserting similar surrogate pair at beginning'
+    )
+
+    self.assertEqual(
+      self.dmp.diff_toDelta([
+        (self.dmp.DIFF_EQUAL, '\U0001F170'),
+        (self.dmp.DIFF_INSERT, '\U0001F172'),
+        (self.dmp.DIFF_EQUAL, '\U0001F171')
+      ]),
+      self.dmp.diff_toDelta(self.dmp.diff_main(
+        '\U0001F170\U0001F171',
+        '\U0001F170\U0001F172\U0001F171'
+      )),
+      'Inserting similar surrogate pair in the middle'
+    )
+
+    self.assertEqual(
+      self.dmp.diff_toDelta([
+        (self.dmp.DIFF_DELETE, '\U0001F171'),
+        (self.dmp.DIFF_EQUAL, '\U0001F170\U0001F171')
+      ]),
+      self.dmp.diff_toDelta(self.dmp.diff_main(
+        '\U0001F171\U0001F170\U0001F171',
+        '\U0001F170\U0001F171'
+      )),
+      'Deleting similar surogate pair at the beginning'
+    )
+
+    self.assertEqual(
+      self.dmp.diff_toDelta([
+        (self.dmp.DIFF_EQUAL, '\U0001F170'),
+        (self.dmp.DIFF_DELETE, '\U0001F172'),
+        (self.dmp.DIFF_EQUAL, '\U0001F171')
+      ]),
+      self.dmp.diff_toDelta(self.dmp.diff_main(
+        '\U0001F170\U0001F172\U0001F171',
+        '\U0001F170\U0001F171'
+      )),
+      'Deleting similar surogate pair in the middle'
+    )
+
+    self.assertEqual(
+      self.dmp.diff_toDelta([
+        (self.dmp.DIFF_DELETE, '\U0001F170'),
+        (self.dmp.DIFF_INSERT, '\U0001F171')
+      ]),
+      self.dmp.diff_toDelta(self.dmp.diff_main(
+        '\U0001F170',
+        '\U0001F171'
+      )),
+      'Swap surrogate pair'
+    )
+
     # 160 kb string.
     a = "abcdefghij"
     for i in range(14):
