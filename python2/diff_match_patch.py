@@ -1137,16 +1137,47 @@ class diff_match_patch:
     return levenshtein
 
   @classmethod
-  def is_high_surrogate(cls, utf16be_bytes):
-    c = struct.unpack('>H', utf16be_bytes)[0]
-    return c >= 0xd800 and c <= 0xdbff
+  def is_high_surrogate(cls, c):
+    return 0xd800 <= c <= 0xdbff
 
   @classmethod
-  def is_low_surrogate(cls, utf16be_bytes):
-    c = struct.unpack('>H', utf16be_bytes)[0]
-    return c >= 0xdc00 and c <= 0xdfff
+  def is_low_surrogate(cls, c):
+    return 0xdc00 <= c <= 0xdfff
 
-  def diff_toDelta(self, diffs):
+  @classmethod
+  def ucs2ord(cls, utf16be_bytes):
+    return struct.unpack('>H', utf16be_bytes)[0]
+
+  def diff_toDelta_narrow(self, diffs):
+    text = []
+    last_end = None
+    for (op, data) in diffs:
+      if 0 == len(data):
+        continue
+
+      this_top = data[0]
+      this_end = data[-1]
+
+      if self.is_high_surrogate(ord(this_end)):
+        last_end = this_end
+        data = data[:-1]
+
+      if last_end and self.is_high_surrogate(ord(last_end)) and self.is_low_surrogate(ord(this_top)):
+        data = last_end + data
+
+      if 0 == len(data):
+        continue
+
+      if op == self.DIFF_INSERT:
+        # High ascii will raise UnicodeDecodeError.  Use Unicode instead.
+        text.append("+" + urllib.quote(data.encode('utf-8'), "!~*'();/?:@&=+$,# "))
+      elif op == self.DIFF_DELETE:
+        text.append("-%d" % len(data))
+      elif op == self.DIFF_EQUAL:
+        text.append("=%d" % len(data))
+    return "\t".join(text)
+
+  def diff_toDelta_wide(self, diffs):
     """Crush the diff into an encoded string which describes the operations
     required to transform text1 into text2.
     E.g. =3\t-2\t+ing  -> Keep 3 chars, delete 2 chars, insert 'ing'.
@@ -1161,30 +1192,37 @@ class diff_match_patch:
     text = []
     last_end = None
     for (op, data) in diffs:
+      if 0 == len(data):
+        continue
+
       encoded = data.encode('utf-16be')
       this_top = encoded[0:2]
       this_end = encoded[-2:]
 
-      if self.is_high_surrogate(this_end):
+      if self.is_high_surrogate(self.ucs2ord(this_end)):
+        last_end = this_end
         encoded = encoded[0:-2]
 
-      if last_end and self.is_high_surrogate(last_end) and self.is_low_surrogate(this_top):
+      if last_end and self.is_high_surrogate(self.ucs2ord(last_end)) and self.is_low_surrogate(self.ucs2ord(this_top)):
         encoded = last_end + encoded
 
-      data = encoded.decode('utf-16be')
-      last_end = this_end
       if 0 == len(encoded):
         continue
 
       if op == self.DIFF_INSERT:
         # High ascii will raise UnicodeDecodeError.  Use Unicode instead.
-        data = data.encode("utf-8")
-        text.append("+" + urllib.quote(data, "!~*'();/?:@&=+$,# "))
+        text.append("+" + urllib.quote(encoded.decode('utf-16be').encode('utf-8'), "!~*'();/?:@&=+$,# "))
       elif op == self.DIFF_DELETE:
-        text.append("-%d" % (len(data.encode('utf-16be')) // 2))
+        text.append("-%d" % (len(encoded) // 2))
       elif op == self.DIFF_EQUAL:
-        text.append("=%d" % (len(data.encode('utf-16be')) // 2))
+        text.append("=%d" % (len(encoded) // 2))
     return "\t".join(text)
+
+  def diff_toDelta(self, diffs, encode_data = sys.maxunicode == 0xFFFF):
+    if encode_data:
+      return self.diff_toDelta_wide(diffs)
+    else:
+      return self.diff_toDelta_narrow(diffs)
 
   def diff_fromDelta(self, text1, delta):
     """Given the original text1, and an encoded string which describes the
