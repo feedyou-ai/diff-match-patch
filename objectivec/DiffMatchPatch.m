@@ -1492,8 +1492,24 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
     @catch (NSException *e) {
         return nil;
     }
-    
-    return [NSString stringWithCharacters:decoded length:output];
+
+    // some objective-c versions of the library produced patches with
+    // (null) in the place where surrogates were split across diff
+    // boundaries. if we leave those in we'll be stuck with a
+    // high-surrogate (null) low-surrogate pattern that will break
+    // deeper in the library or consumping application. we'll "fix"
+    // these by dropping the (null) and re-joining the surrogate halves
+    NSString *result = [NSString stringWithCharacters:decoded length:output];
+    NSRegularExpression *replacer = [NSRegularExpression
+                                     regularExpressionWithPattern:@"([\\x{D800}-\\x{DBFF}])\\(null\\)([\\x{DC00}-\\x{DFFF}])"
+                                     options:0
+                                     error:nil];
+
+    return [replacer
+            stringByReplacingMatchesInString:result
+            options:0
+            range:NSMakeRange(0, [result length])
+            withTemplate:@"$1$2"];
 }
 
 /**
