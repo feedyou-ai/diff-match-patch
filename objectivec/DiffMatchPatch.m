@@ -1368,9 +1368,15 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
 
 - (NSString *)diff_decodeURIWithText:(NSString *)percentEncoded
 {
-    unichar decoded[[percentEncoded length]];
-    int input = 0;
-    int output = 0;
+    NSInteger inputLength = [percentEncoded length];
+
+    if (0 == inputLength) {
+        return @"";
+    }
+
+    unichar decoded[inputLength];
+    NSInteger input = 0;
+    NSInteger output = 0;
     
     @try {
         while (input < [percentEncoded length]) {
@@ -1382,6 +1388,10 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
+            if (inputLength < input + 3) {
+                return nil;
+            }
+
             int byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
                          [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
 
@@ -1391,15 +1401,15 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if ('%' != [percentEncoded characterAtIndex:(input + 3)]) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            if (inputLength < input + 6 || '%' != [percentEncoded characterAtIndex:(input + 3)]) {
+                return nil;
             }
 
             int byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
                          [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
 
             if ((byte2 & 0xC0) != 0x80) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+                return nil;
             }
 
             byte2 = byte2 & 0x3F;
@@ -1410,15 +1420,15 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if ('%' != [percentEncoded characterAtIndex:(input + 6)]) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            if (inputLength < input + 9 || '%' != [percentEncoded characterAtIndex:(input + 6)]) {
+                return nil;
             }
 
             int byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
                          [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
 
             if ((byte3 & 0xC0) != 0x80) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+                return nil;
             }
 
             byte3 = byte3 & 0x3F;
@@ -1429,15 +1439,15 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if ('%' != [percentEncoded characterAtIndex:(input + 9)]) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            if (inputLength < input + 12 || '%' != [percentEncoded characterAtIndex:(input + 9)]) {
+                return nil;
             }
 
             int byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
                          [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
 
             if ((byte4 & 0xC0) != 0x80) {
-                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+                return nil;
             }
 
             byte4 = byte4 & 0x3F;
@@ -1453,7 +1463,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 }
             }
 
-            [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            return nil;
         }
     }
     @catch (NSException *e) {
