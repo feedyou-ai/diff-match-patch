@@ -1342,7 +1342,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
   return delta;
 }
 
-- (int)diff_digit16:(unichar)c
+- (NSInteger)diff_digit16:(unichar)c
 {
     switch (c) {
         case '0': return 0;
@@ -1382,8 +1382,8 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            int byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
-                         [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
+            uint16 byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
+                            [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
 
             if ((byte1 & 0x80) == 0) {
                 decoded[output++] = byte1;
@@ -1395,8 +1395,8 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 return nil;
             }
 
-            int byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
-                         [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
+            uint16 byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
+                            [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
 
             if ((byte2 & 0xC0) != 0x80) {
                 return nil;
@@ -1414,8 +1414,8 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 return nil;
             }
 
-            int byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
-                         [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
+            uint16 byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
+                            [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
 
             if ((byte3 & 0xC0) != 0x80) {
                 return nil;
@@ -1433,8 +1433,8 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 return nil;
             }
 
-            int byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
-                         [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
+            uint16 byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
+                            [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
 
             if ((byte4 & 0xC0) != 0x80) {
                 return nil;
@@ -1443,7 +1443,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
             byte4 = byte4 & 0x3F;
 
             if ((byte1 & 0xF8) == 0xF0) {
-                int codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
+                uint32 codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
                 if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
                     codePoint -= 0x010000;
                     decoded[output++] = ((codePoint >> 10) & 0x3FF) | 0xD800;
