@@ -1497,7 +1497,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
     // (null) in the place where surrogates were split across diff
     // boundaries. if we leave those in we'll be stuck with a
     // high-surrogate (null) low-surrogate pattern that will break
-    // deeper in the library or consumping application. we'll "fix"
+    // deeper in the library or consuming application. we'll "fix"
     // these by dropping the (null) and re-joining the surrogate halves
     NSString *result = [NSString stringWithCharacters:decoded length:output];
     NSRegularExpression *replacer = [NSRegularExpression
