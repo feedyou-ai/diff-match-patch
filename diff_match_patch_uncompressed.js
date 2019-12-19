@@ -1516,7 +1516,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
     // (null) in the place where surrogates were split across diff
     // boundaries. if we leave those in we'll be stuck with a
     // high-surrogate (null) low-surrogate pattern that will break
-    // deeper in the library or consumping application. we'll "fix"
+    // deeper in the library or consuming application. we'll "fix"
     // these by dropping the (null) and re-joining the surrogate halves
     return decoded.replace(/([\uD800-\uDBFF])\(null\)([\uDC00-\uDFFF])/g, "$1$2");
   }
