@@ -1368,13 +1368,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
 
 - (NSString *)diff_decodeURIWithText:(NSString *)percentEncoded
 {
-    NSInteger inputLength = [percentEncoded length];
-
-    if (0 == inputLength) {
-        return @"";
-    }
-
-    unichar decoded[inputLength];
+    unichar decoded[[percentEncoded length]];
     NSInteger input = 0;
     NSInteger output = 0;
     
@@ -1388,10 +1382,6 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if (inputLength < input + 3) {
-                return nil;
-            }
-
             int byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
                          [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
 
@@ -1401,7 +1391,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if (inputLength < input + 6 || '%' != [percentEncoded characterAtIndex:(input + 3)]) {
+            if ('%' != [percentEncoded characterAtIndex:(input + 3)]) {
                 return nil;
             }
 
@@ -1420,7 +1410,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if (inputLength < input + 9 || '%' != [percentEncoded characterAtIndex:(input + 6)]) {
+            if ('%' != [percentEncoded characterAtIndex:(input + 6)]) {
                 return nil;
             }
 
@@ -1439,7 +1429,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
                 continue;
             }
 
-            if (inputLength < input + 12 || '%' != [percentEncoded characterAtIndex:(input + 9)]) {
+            if ('%' != [percentEncoded characterAtIndex:(input + 9)]) {
                 return nil;
             }
 
