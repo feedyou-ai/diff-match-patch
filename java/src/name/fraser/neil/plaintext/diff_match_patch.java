@@ -1507,7 +1507,7 @@ public class diff_match_patch {
 
   private String decodeURI(String text) throws IllegalArgumentException {
     int i = 0;
-    StringBuffer decoded = new StringBuffer("");
+    StringBuilder decoded = new StringBuilder(text.length());
 
     while (i < text.length()) {
       if (text.charAt(i) != '%') {
@@ -1576,7 +1576,16 @@ public class diff_match_patch {
       throw new IllegalArgumentException();
     }
 
-    return decoded.toString();
+    // some objective-c versions of the library produced patches with
+    // (null) in the place where surrogates were split across diff
+    // boundaries. if we leave those in we'll be stuck with a
+    // high-surrogate (null) low-surrogate pattern that will break
+    // deeper in the library or consuming application. we'll "fix"
+    // these by dropping the (null) and re-joining the surrogate halves
+    return decoded.toString().replaceAll(
+      "([\\uD800-\\uDBFF])\\(null\\)([\\uDC00-\\uDFFF])",
+      "$1$2"
+    );
   }
 
   /**
