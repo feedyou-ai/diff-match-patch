@@ -1342,7 +1342,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
   return delta;
 }
 
-- (NSInteger)diff_digit16:(unichar)c
+- (NSUInteger)diff_digit16:(unichar)c
 {
     switch (c) {
         case '0': return 0;
@@ -1366,6 +1366,16 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
     }
 }
 
+/**
+* Decode a percent-encoded UTF-8 string into a string of UTF-16 code units
+* This is more permissive than `stringByRemovingPercentEncoding` because
+* that fails if the input represents invalid Unicode characters. However, different
+* diff-match-patch libraries may encode surrogate halves as if they were valid
+* Unicode code points. Therefore, instead of failing or corrupting the output, which
+* `stringByRemovingPercentEncoding` does when it inserts "(null)" in these places
+* we can decode it anyway and then once the string is reconstructed from the diffs
+* we'll end up with valid Unicode again, after the surrogate halves are re-joined
+*/
 - (NSString *)diff_decodeURIWithText:(NSString *)percentEncoded
 {
     unichar decoded[[percentEncoded length]];
@@ -1376,46 +1386,57 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
         while (input < [percentEncoded length]) {
             unichar c = [percentEncoded characterAtIndex:input];
 
+            // not special, so just return it
             if ('%' != c) {
                 decoded[output++] = c;
                 input += 1;
                 continue;
             }
 
-            uint16 byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
-                            [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
+            NSUInteger byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
+                                [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
 
+            // single-byte UTF-8 first byte has bitmask 0xxx xxxx
             if ((byte1 & 0x80) == 0) {
                 decoded[output++] = byte1;
                 input += 3;
                 continue;
             }
 
+            // at least one continuation byte
             if ('%' != [percentEncoded characterAtIndex:(input + 3)]) {
                 return nil;
             }
 
-            uint16 byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
-                            [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
+            NSUInteger byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
+                                [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
 
+            // continuation bytes have bitmask 10xx xxxx
             if ((byte2 & 0xC0) != 0x80) {
                 return nil;
             }
 
+            // continuation bytes thus only contribute six bits each
+            // these data bits are found with the bit mask xx11 1111
             byte2 = byte2 & 0x3F;
 
+            // in two-byte sequences the first byte has bitmask 110x xxxx
             if ((byte1 & 0xE0) == 0xC0) {
+                // byte1 ___x xxxx << 6
+                // byte2        __yy yyyy
+                // value    x xxxxyy yyyy -> 11 bits
                 decoded[output++] = ((byte1 & 0x1F) << 6) | byte2;
                 input += 6;
                 continue;
             }
 
+            // at least two continuation bytes
             if ('%' != [percentEncoded characterAtIndex:(input + 6)]) {
                 return nil;
             }
 
-            uint16 byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
-                            [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
+            NSUInteger byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
+                                [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
 
             if ((byte3 & 0xC0) != 0x80) {
                 return nil;
@@ -1423,18 +1444,24 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
 
             byte3 = byte3 & 0x3F;
 
+            // in three-byte sequences the first byte has bitmask 1110 xxxx
             if ((byte1 & 0xF0) == 0xE0) {
+                // byte1 ____ xxxx << 12
+                // byte2        __yy yyyy << 6
+                // byte3               __zz zzzz
+                // value      xxxxyy yyyyzz zzzz -> 16 bits
                 decoded[output++] = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
                 input += 9;
                 continue;
             }
 
+            // three continuation bytes
             if ('%' != [percentEncoded characterAtIndex:(input + 9)]) {
                 return nil;
             }
 
-            uint16 byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
-                            [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
+            NSUInteger byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
+                                [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
 
             if ((byte4 & 0xC0) != 0x80) {
                 return nil;
@@ -1442,8 +1469,14 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
 
             byte4 = byte4 & 0x3F;
 
+            // in four-byte sequences the first byte has bitmask 1111 0xxx
             if ((byte1 & 0xF8) == 0xF0) {
-                uint32 codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
+                // byte1 ____ _xxx << 18
+                // byte2        __yy yyyy << 12
+                // byte3               __zz zzzz << 6
+                // byte4                      __tt tttt
+                // value       xxxyy yyyyzz zzzztt tttt -> 21 bits
+                NSUInteger codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
                 if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
                     codePoint -= 0x010000;
                     decoded[output++] = ((codePoint >> 10) & 0x3FF) | 0xD800;
