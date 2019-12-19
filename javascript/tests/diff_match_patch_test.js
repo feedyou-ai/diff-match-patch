@@ -605,6 +605,15 @@ function testDiffDelta() {
     assertEquals('Swap surrogate pair', 'crashed');
   }
 
+  try {
+    assertEquivalent(
+      dmp.diff_fromDelta('', '+%ED%A0%BC%28null%29%ED%B5%B0'),
+      [[DIFF_INSERT, '\ud83c\udd70']]
+    );
+  } catch ( e ) {
+    assertEquals('Invalid diff from objective-c with (null) string' );
+  }
+
   // Empty diff groups
   assertEquivalent(
     dmp.diff_toDelta([[DIFF_EQUAL, 'abcdef'], [DIFF_DELETE, ''], [DIFF_INSERT, 'ghijk']]),
