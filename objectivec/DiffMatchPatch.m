@@ -1342,6 +1342,127 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
   return delta;
 }
 
+- (int)diff_digit16:(unichar)c
+{
+    switch (c) {
+        case '0': return 0;
+        case '1': return 1;
+        case '2': return 2;
+        case '3': return 3;
+        case '4': return 4;
+        case '5': return 5;
+        case '6': return 6;
+        case '7': return 7;
+        case '8': return 8;
+        case '9': return 9;
+        case 'A': case 'a': return 10;
+        case 'B': case 'b': return 11;
+        case 'C': case 'c': return 12;
+        case 'D': case 'd': return 13;
+        case 'E': case 'e': return 14;
+        case 'F': case 'f': return 15;
+        default:
+            [NSException raise:@"Invalid percent-encoded string" format:@"%c is not a hex digit", c];
+    }
+}
+
+- (NSString *)diff_decodeURIWithText:(NSString *)percentEncoded
+{
+    unichar decoded[[percentEncoded length]];
+    int input = 0;
+    int output = 0;
+    
+    @try {
+        while (input < [percentEncoded length]) {
+            unichar c = [percentEncoded characterAtIndex:input];
+
+            if ('%' != c) {
+                decoded[output++] = c;
+                input += 1;
+                continue;
+            }
+
+            int byte1 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+1)]] << 4) +
+                         [self diff_digit16:[percentEncoded characterAtIndex:(input+2)]];
+
+            if ((byte1 & 0x80) == 0) {
+                decoded[output++] = byte1;
+                input += 3;
+                continue;
+            }
+
+            if ('%' != [percentEncoded characterAtIndex:(input + 3)]) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            int byte2 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+4)]] << 4) +
+                         [self diff_digit16:[percentEncoded characterAtIndex:(input+5)]];
+
+            if ((byte2 & 0xC0) != 0x80) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            byte2 = byte2 & 0x3F;
+
+            if ((byte1 & 0xE0) == 0xC0) {
+                decoded[output++] = ((byte1 & 0x1F) << 6) | byte2;
+                input += 6;
+                continue;
+            }
+
+            if ('%' != [percentEncoded characterAtIndex:(input + 6)]) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            int byte3 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+7)]] << 4) +
+                         [self diff_digit16:[percentEncoded characterAtIndex:(input+8)]];
+
+            if ((byte3 & 0xC0) != 0x80) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            byte3 = byte3 & 0x3F;
+
+            if ((byte1 & 0xF0) == 0xE0) {
+                decoded[output++] = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
+                input += 9;
+                continue;
+            }
+
+            if ('%' != [percentEncoded characterAtIndex:(input + 9)]) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            int byte4 = ([self diff_digit16:[percentEncoded characterAtIndex:(input+10)]] << 4) +
+                         [self diff_digit16:[percentEncoded characterAtIndex:(input+11)]];
+
+            if ((byte4 & 0xC0) != 0x80) {
+                [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+            }
+
+            byte4 = byte4 & 0x3F;
+
+            if ((byte1 & 0xF8) == 0xF0) {
+                int codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) | (byte3 << 0x06) | byte4;
+                if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
+                    codePoint -= 0x010000;
+                    decoded[output++] = ((codePoint >> 10) & 0x3FF) | 0xD800;
+                    decoded[output++] = 0xDC00 | (codePoint & 0x3FF);
+                    input += 12;
+                    continue;
+                }
+            }
+
+            [NSException raise:@"Invalid percent-encoded string" format:@"Cannot decode UTF-8 sequence: %@", percentEncoded];
+        }
+    }
+    @catch (NSException *e) {
+        return nil;
+    }
+    
+    return [NSString stringWithCharacters:decoded length:output];
+}
+
 /**
  * Given the original text1, and an encoded NSString which describes the
  * operations required to transform text1 into text2, compute the full diff.
@@ -1369,7 +1490,7 @@ void splice(NSMutableArray *input, NSUInteger start, NSUInteger count, NSArray *
     NSString *param = [token substringFromIndex:1];
     switch ([token characterAtIndex:0]) {
       case '+':
-        param = [param diff_stringByReplacingPercentEscapesForEncodeUriCompatibility];
+        param = [self diff_decodeURIWithText:param];
         if (param == nil) {
           if (error != NULL) {
             errorDetail = [NSDictionary dictionaryWithObjectsAndKeys:
