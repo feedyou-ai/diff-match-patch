@@ -546,7 +546,7 @@ function testDiffDelta() {
 
     for(let i = 0; i < 1000; i++) {
       newText = applyRandomTextEdit(originalText);
-      dmp.patch_toText(dmp.patch_make(originalText, newText));
+      dmp.diff_toDelta(dmp.diff_main(originalText, newText));
     }
   })();
 
@@ -603,15 +603,6 @@ function testDiffDelta() {
     );
   } catch ( e ) {
     assertEquals('Swap surrogate pair', 'crashed');
-  }
-
-  try {
-    assertEquivalent(
-      dmp.diff_fromDelta('', '+%ED%A0%BC%28null%29%ED%B5%B0'),
-      [[DIFF_INSERT, '\ud83c\udd70']]
-    );
-  } catch ( e ) {
-    assertEquals('Invalid diff from objective-c with (null) string' );
   }
 
   // Empty diff groups

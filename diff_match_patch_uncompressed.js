@@ -1361,7 +1361,6 @@ diff_match_patch.prototype.diff_toDelta = function(diffs) {
   var text = [];
   var lastEnd;
   for (var x = 0; x < diffs.length; x++) {
-
     var thisDiff = diffs[x];
     var thisTop = thisDiff[1][0];
     var thisEnd = thisDiff[1][thisDiff[1].length - 1];
@@ -1512,13 +1511,7 @@ diff_match_patch.prototype.decodeURI = function(text) {
       throw new URIError('URI malformed');
     }
 
-    // some objective-c versions of the library produced patches with
-    // (null) in the place where surrogates were split across diff
-    // boundaries. if we leave those in we'll be stuck with a
-    // high-surrogate (null) low-surrogate pattern that will break
-    // deeper in the library or consuming application. we'll "fix"
-    // these by dropping the (null) and re-joining the surrogate halves
-    return decoded.replace(/([\uD800-\uDBFF])\(null\)([\uDC00-\uDFFF])/g, "$1$2");
+    return decoded;
   }
 };
 
