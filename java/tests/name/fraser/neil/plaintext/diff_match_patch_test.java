@@ -460,12 +460,6 @@ public class diff_match_patch_test {
       dmp.diff_toDelta(dmp.diff_fromDelta("\ud83c\udd70", "=1\t-1\t+%ED%B5%B1"))
     );
 
-    assertEquals(
-      "diff_fromDelta: Invalid diff from objective-c with (null) string",
-      diffList(new Diff(INSERT, "\ud83c\udd70")),
-      dmp.diff_fromDelta("", "+%ED%A0%BC%28null%29%ED%B5%B0")
-    );
-
     // Verify pool of unchanged characters.
     diffs = diffList(new Diff(INSERT, "A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # "));
     String text2 = dmp.diff_text2(diffs);

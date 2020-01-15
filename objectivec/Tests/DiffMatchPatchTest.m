@@ -814,10 +814,6 @@
                                             [Diff diffWithOperation:DIFF_INSERT andText:[NSString stringWithFormat:@"%C", 0xdd71]],
                                             nil])]);
 
-    // Invalid diff from objective-c with (null) string
-    XCTAssertEqualObjects([dmp diff_fromDeltaWithText:@"" andDelta:@"+%ED%A0%BC%28null%29%ED%B5%B0" error:nil],
-                          ([NSMutableArray arrayWithObjects:[Diff diffWithOperation:DIFF_INSERT andText:@"🅰"],nil]));
-
   // Verify pool of unchanged characters.
   diffs = [NSMutableArray arrayWithObject:
        [Diff diffWithOperation:DIFF_INSERT andText:@"A-Z a-z 0-9 - _ . ! ~ * ' ( ) ; / ? : @ & = + $ , # "]];
