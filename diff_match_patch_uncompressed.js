@@ -2215,6 +2215,46 @@ diff_match_patch.prototype.patch_splitMax = function(patches) {
   }
 };
 
+diff_match_patch.prototype.diffs_joinSurrogatePairs = function(diffs) {
+  var lastEnd;
+  var overwrittenDiffsCounter = 0;
+  
+  for (var x = 0 ; x < diffs.length ; x++) {
+    var thisDiff = diffs[x];
+    var thisTop = thisDiff[1][0];
+    var thisEnd = thisDiff[1][thisDiff[1].length - 1];
+    
+    if (0 === thisDiff[1].length) {
+      continue;
+    }
+    
+    // trap a trailing high-surrogate so we can
+    // distribute it to the successive edits
+    if (thisEnd && this.isHighSurrogate(thisEnd)) {
+      lastEnd = thisEnd;
+      thisDiff[1] = thisDiff[1].slice(0, -1);
+    }
+    
+    if (lastEnd && thisTop && this.isHighSurrogate(lastEnd) && this.isLowSurrogate(thisTop)) {
+      thisDiff[1] = lastEnd + thisDiff[1];
+    }
+    
+    if (0 === thisDiff[1].length) {
+      continue;
+    }
+    
+    diffs[overwrittenDiffsCounter] = thisDiff;
+    overwrittenDiffsCounter ++;
+  }
+  
+  return diffs.splice(0, overwrittenDiffsCounter)
+}
+
+diff_match_patch.prototype.patch_joinSurrogatePairs = function(patch) {
+  patch.diffs = this.diffs_joinSurrogatePairs(patch.diffs)
+  return patch
+}
+
 
 /**
  * Take a list of patches and return a textual representation.
@@ -2224,7 +2264,7 @@ diff_match_patch.prototype.patch_splitMax = function(patches) {
 diff_match_patch.prototype.patch_toText = function(patches) {
   var text = [];
   for (var x = 0; x < patches.length; x++) {
-    text[x] = patches[x];
+    text[x] = this.patch_joinSurrogatePairs(patches[x]);
   }
   return text.join('');
 };
@@ -2277,7 +2317,7 @@ diff_match_patch.prototype.patch_fromText = function(textline) {
     while (textPointer < text.length) {
       var sign = text[textPointer].charAt(0);
       try {
-        var line = decodeURI(text[textPointer].substring(1));
+        var line = this.decodeURI(text[textPointer].substring(1));
       } catch (ex) {
         // Malformed URI sequence.
         throw new Error('Illegal escape in patch_fromText: ' + line);
