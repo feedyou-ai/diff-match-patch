@@ -1775,13 +1775,19 @@ diff_match_patch.prototype.patch_addContext_ = function(patch, text) {
   padding += this.Patch_Margin;
 
   // Add the prefix.
-  var prefix = text.substring(patch.start2 - padding, patch.start2);
+  var prefix = this.isLowSurrogate(prefix[0]) // Avoid splitting on non-character boundaries
+    ? text.substring(patch.start2 - padding - 1 , patch.start2)
+    : text.substring(patch.start2 - padding     , patch.start2);
+  
   if (prefix) {
     patch.diffs.unshift(new diff_match_patch.Diff(DIFF_EQUAL, prefix));
   }
+  
   // Add the suffix.
-  var suffix = text.substring(patch.start2 + patch.length1,
-                              patch.start2 + patch.length1 + padding);
+  var suffix = this.isHighSurrogate(suffix[suffix.length-1]) // Avoid splitting on non-character boundaries
+    ? text.substring(patch.start2 + patch.length1, patch.start2 + patch.length1 + padding + 1)
+    : text.substring(patch.start2 + patch.length1, patch.start2 + patch.length1 + padding);
+    
   if (suffix) {
     patch.diffs.push(new diff_match_patch.Diff(DIFF_EQUAL, suffix));
   }
