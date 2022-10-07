@@ -2407,18 +2407,8 @@ diff_match_patch.patch_obj.prototype.toString = function() {
   return text.join('').replace(/%20/g, ' ');
 };
 
-// CLOSURE:begin_strip
-// Lines below here will not be included in the Closure-compatible library.
-
-// Export these global variables so that they survive Google's JS compiler.
-// In a browser, 'this' will be 'window'.
-// Users of node.js should 'require' the uncompressed version since Google's
-// JS compiler may break the following exports for non-browser environments.
-/** @suppress {globalThis} */
-this['diff_match_patch'] = diff_match_patch;
-/** @suppress {globalThis} */
-this['DIFF_DELETE'] = DIFF_DELETE;
-/** @suppress {globalThis} */
-this['DIFF_INSERT'] = DIFF_INSERT;
-/** @suppress {globalThis} */
-this['DIFF_EQUAL'] = DIFF_EQUAL;
+module.exports = diff_match_patch;
+module.exports['diff_match_patch'] = diff_match_patch;
+module.exports['DIFF_DELETE'] = DIFF_DELETE;
+module.exports['DIFF_INSERT'] = DIFF_INSERT;
+module.exports['DIFF_EQUAL'] = DIFF_EQUAL;
