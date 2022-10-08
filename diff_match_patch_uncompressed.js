@@ -1774,8 +1774,10 @@ diff_match_patch.prototype.patch_addContext_ = function(patch, text) {
   // Add one chunk for good luck.
   padding += this.Patch_Margin;
 
+	
+	
   // Add the prefix.
-  var prefix = this.isLowSurrogate(prefix[0]) // Avoid splitting on non-character boundaries
+  var prefix = this.isLowSurrogate(text[patch.start2 - padding]) // Avoid splitting on non-character boundaries
     ? text.substring(patch.start2 - padding - 1 , patch.start2)
     : text.substring(patch.start2 - padding     , patch.start2);
   
@@ -1784,7 +1786,7 @@ diff_match_patch.prototype.patch_addContext_ = function(patch, text) {
   }
   
   // Add the suffix.
-  var suffix = this.isHighSurrogate(suffix[suffix.length-1]) // Avoid splitting on non-character boundaries
+  var suffix = this.isHighSurrogate(text[patch.start2 + patch.length1 + padding]) // Avoid splitting on non-character boundaries
     ? text.substring(patch.start2 + patch.length1, patch.start2 + patch.length1 + padding + 1)
     : text.substring(patch.start2 + patch.length1, patch.start2 + patch.length1 + padding);
     
