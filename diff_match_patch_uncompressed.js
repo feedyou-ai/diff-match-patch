@@ -1340,11 +1340,19 @@ diff_match_patch.prototype.diff_levenshtein = function(diffs) {
 };
 
 diff_match_patch.prototype.isHighSurrogate = function(c) {
+  if(typeof c !== 'string'){
+    return false
+  }
+  
   var v = c.charCodeAt(0);
   return v >= 0xD800 && v <= 0xDBFF;
 }
 
 diff_match_patch.prototype.isLowSurrogate = function(c) {
+	if(typeof c !== 'string'){
+		return false
+	}
+  
   var v = c.charCodeAt(0);
   return v >= 0xDC00 && v <= 0xDFFF;
 }
