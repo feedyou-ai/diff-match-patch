@@ -1,6 +1,6 @@
 {
-  "name": "diff-match-patch-fork",
-  "version": "1.0.4",
+  "name": "diff-match-patch",
+  "version": "1.0.3",
   "description": "diff-patch-match fork with fixed surrogate pair processing",
   "main": "diff_match_patch_uncompressed.js",
   "directories": {
